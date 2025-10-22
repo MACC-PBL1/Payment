@@ -1,3 +1,4 @@
 COMPOSE_PROJECT_NAME=payment
-
 SQLALCHEMY_SQLITE_DATABASE_URI=sqlite+aiosqlite:////database/payment.db
+RABBITMQ_USER=guest
+RABBITMQ_PASSWD=guest

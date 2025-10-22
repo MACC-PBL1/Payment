@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools >=80.0.0, <81.0.0", 
-    "wheel >=0.45.0, <0.46.0"
+    "wheel >=0.45.0, <0.46.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -18,16 +18,19 @@ dependencies = [
     "aiosqlite==0.21.0",
     "coloredlogs==15.0.1",
     # "PyYAML==6.0.3",
-    "pika==1.3.2"
+    "pika==1.3.2",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "build==1.3.0"
+    "build==1.3.0",
 ]
 
 [project.scripts]
 payment = "payment:start_server"
 
 [tool.setuptools.package-data]
-payment = ["logging.ini"]
+payment = [
+    "logging.ini",
+    ".pylintrc",
+]
