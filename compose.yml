@@ -1,0 +1,15 @@
+services:
+  payment:
+    build: .
+    ports:
+      - '13000:8000'
+      - '13443:8443'
+    volumes:
+      - payment-db:/database
+    environment:
+      PYTHONUNBUFFERED: 1
+      SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_SQLITE_DATABASE_URI}
+    restart: on-failure
+
+volumes:
+  payment-db:
