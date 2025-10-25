@@ -10,7 +10,7 @@ class ClientBalance(BaseModel):
 
 class Message(BaseModel):
     """Message schema definition."""
-    detail: Optional[str] = Field(example="error or success message")
+    detail: Optional[str] = Field(examples=None)
 
 class Movement(BaseModel):
     """Money movement petition"""

@@ -1,8 +1,7 @@
 # Ignore everything by default
 **
-
-# But keep pyproject.toml
 !pyproject.toml
-
-# And keep the source directory
 !src/
+__pycache__/
+*.egg-info/
+*.db
