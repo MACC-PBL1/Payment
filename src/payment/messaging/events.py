@@ -46,9 +46,12 @@ async def request(message: MessageType) -> None:
     ) as publisher:
         publisher.publish(message=response)
 
-
-@register_queue_handler(LISTENING_QUEUES["public_key"])
-def public_key_update(message: MessageType) -> None:
+@register_queue_handler(
+    queue=LISTENING_QUEUES["public_key"],
+    exchange="public_key",
+    exchange_type="fanout"
+)
+def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
-    assert (public_key := message.get("public_key")) is not None, "'public_key' field should exist."
+    assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
     PUBLIC_KEY = str(public_key)
