@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """FastAPI router definitions."""
+from ..messaging import PUBLIC_KEY
 from ..sql import (
     ClientBalance,
     create_deposit_from_movement,
@@ -7,6 +8,7 @@ from ..sql import (
     Message,
 )
 from chassis.sql import get_db
+from chassis.security import create_jwt_verifier
 from chassis.routers import raise_and_log_error
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +30,24 @@ async def health_check():
         "detail": "OK"
     }
 
+@Router.get(
+    "/health/auth",
+    summary="Health check endpoint (JWT protected)",
+)
+async def health_check_auth(
+    token_data: dict = Depends(create_jwt_verifier(PUBLIC_KEY, logger))
+):
+    user_id = token_data.get("sub")
+    user_email = token_data.get("email")
+    user_role = token_data.get("role")
+
+    logger.info(f" Valid JWT: user_id={user_id}, email={user_email}, role={user_role}")
+
+    return {
+        "detail": f"Order service is running. Authenticated as {user_email} (id={user_id}, role={user_role})"
+    }
+
+
 @Router.post(
     path="/deposit",
     response_model=ClientBalance,
@@ -35,12 +55,18 @@ async def health_check():
     tags=["Deposit"]
 )
 async def create_deposit(
-    movement: Movement,
+    amount: float,
+    token_data: dict = Depends(create_jwt_verifier(PUBLIC_KEY, logger)),
     db: AsyncSession = Depends(get_db)
 ):
     logger.debug("POST '/deposit' endpoint called")
+    assert (client_id := token_data.get("sub")) is not None, f"'sub' field should exist in the JWT."
+    client_id = int(client_id)
     try:
-        db_client_balance = await create_deposit_from_movement(db, movement)
+        db_client_balance = await create_deposit_from_movement(db, Movement(
+            client_id=client_id,
+            amount=amount,
+        ))
         return ClientBalance(
             client_id=db_client_balance.client_id,
             balance=db_client_balance.balance,

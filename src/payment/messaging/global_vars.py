@@ -2,7 +2,8 @@ from chassis.messaging import RabbitMQConfig
 from pathlib import Path
 from typing import (
     Dict,
-    LiteralString
+    LiteralString,
+    Optional,
 )
 import os
 
@@ -25,3 +26,4 @@ LISTENING_QUEUES: Dict[LiteralString, LiteralString] = {
     "request": "payment.request",
     "public_key": "client.public_key",
 }
+PUBLIC_KEY: Optional[str] = None

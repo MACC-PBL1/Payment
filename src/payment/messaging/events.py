@@ -2,6 +2,7 @@ from ..sql import try_create_payment
 from ..sql import Movement
 from .global_vars import (
     LISTENING_QUEUES,
+    PUBLIC_KEY,
     PUBLISHING_QUEUES,
     RABBITMQ_CONFIG,
 )
@@ -16,8 +17,9 @@ from chassis.messaging import (
     RabbitMQPublisher,
 )
 from chassis.sql import get_db
+import logging
 
-PUBLIC_KEY = "" # Por ahora asi que no se bien como va
+logger = logging.getLogger(__name__)
 
 @register_queue_handler(LISTENING_QUEUES["request"])
 async def request(message: MessageType) -> None:
@@ -55,3 +57,4 @@ def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
     assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
     PUBLIC_KEY = str(public_key)
+    logging.info(f"Public key updated: {PUBLIC_KEY}")
