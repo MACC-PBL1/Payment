@@ -4,7 +4,7 @@ FROM python:3.13-slim-bookworm
 RUN useradd -u 1000 -d /home/pyuser -m pyuser && \
     install -d -o pyuser -g pyuser /database && \
     apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git curl && \
     pip install --upgrade pip
 
 # Create volume
