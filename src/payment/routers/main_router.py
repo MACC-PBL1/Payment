@@ -65,7 +65,7 @@ async def create_deposit(
     db: AsyncSession = Depends(get_db)
 ):
     logger.debug(
-        "POST '/deposit' endpoint called"
+        "POST '/deposit' endpoint called:\n"
         "\tParams:\n"
         f"\t\t- 'amount': {amount}"
     )
