@@ -16,7 +16,7 @@ from chassis.messaging import (
     register_queue_handler,
     RabbitMQPublisher,
 )
-from chassis.sql import get_db
+from chassis.sql import SessionLocal
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,8 @@ async def request(message: MessageType) -> None:
     }
     
     try:
-        _ = await try_create_payment(Depends(get_db), Movement(client_id=client_id, amount=order_id))
+        async with SessionLocal() as db:
+            _ = await try_create_payment(db, Movement(client_id=client_id, amount=order_id))
         response["status"] = "OK"
     except Exception as e:
         response["status"] = f"Error: {e}"
