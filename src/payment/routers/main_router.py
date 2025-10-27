@@ -28,7 +28,7 @@ Router = APIRouter(
 )
 async def health_check():
     """Endpoint to check if everything started correctly."""
-    logger.debug("GET '/' endpoint called.")
+    logger.debug("GET '/payment' endpoint called.")
     return {
         "detail": "OK"
     }
@@ -40,6 +40,8 @@ async def health_check():
 async def health_check_auth(
     token_data: dict = Depends(create_jwt_verifier(lambda: PUBLIC_KEY["key"], logger))
 ):
+    logger.debug("GET '/payment/auth' endpoint called.")
+
     user_id = token_data.get("sub")
     user_email = token_data.get("email")
     user_role = token_data.get("role")
@@ -62,7 +64,11 @@ async def create_deposit(
     token_data: dict = Depends(create_jwt_verifier(lambda: PUBLIC_KEY["key"], logger)),
     db: AsyncSession = Depends(get_db)
 ):
-    logger.debug("POST '/deposit' endpoint called")
+    logger.debug(
+        "POST '/deposit' endpoint called",
+        "\tParams:\n",
+        f"\t\t- 'amount': {amount}"
+    )
     assert (client_id := token_data.get("sub")) is not None, f"'sub' field should exist in the JWT."
     client_id = int(client_id)
     try:

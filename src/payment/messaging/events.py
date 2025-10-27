@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 @register_queue_handler(LISTENING_QUEUES["request"])
 async def request(message: MessageType) -> None:
+    logger.info(f"EVENT: Payment requested --> Message: {message}")
+
     assert (client_id := message.get("client_id")) is not None, "'client_id' field should exist."
     assert (order_id := message.get("order_id")) is not None, "'order_id' field should exist."
     assert (amount := message.get("amount")) is not None, "'amount' field should exist."
@@ -46,7 +48,8 @@ async def request(message: MessageType) -> None:
         queue=PUBLISHING_QUEUES["confirmation"],
         rabbitmq_config=RABBITMQ_CONFIG,
     ) as publisher:
-        publisher.publish(message=response)
+        publisher.publish(response)
+        logger.info(f"COMMAND: Confirm payment --> {response}")
 
 @register_queue_handler(
     queue=LISTENING_QUEUES["public_key"],
@@ -54,7 +57,8 @@ async def request(message: MessageType) -> None:
     exchange_type="fanout"
 )
 def public_key(message: MessageType) -> None:
+    logger.info(f"EVENT: Public key updated --> Message: {message}")
+
     global PUBLIC_KEY
     assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
     PUBLIC_KEY["key"] = str(public_key)
-    logging.info(f"Public key updated: {PUBLIC_KEY}")
