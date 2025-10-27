@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 async def request(message: MessageType) -> None:
     logger.info(f"EVENT: Payment requested --> Message: {message}")
     with RabbitMQPublisher(
-        queue="events.auth",
+        queue="events.payment",
         rabbitmq_config=RABBITMQ_CONFIG,
         exchange="events.exchange",
         exchange_type="topic",
-        routing_key="events.auth",
+        routing_key="events.payment",
         ) as publisher:
             publisher.publish({
-                "service_name": "auth",
+                "service_name": "payment",
                 "event_type": "Listen",
                 "message": f"EVENT: Payment requested --> Message: {message}"
             })
@@ -66,14 +66,14 @@ async def request(message: MessageType) -> None:
         logger.info(f"EVENT: Confirm payment --> {response}")
 
     with RabbitMQPublisher(
-        queue="events.auth",
+        queue="events.payment",
         rabbitmq_config=RABBITMQ_CONFIG,
         exchange="events.exchange",
         exchange_type="topic",
-        routing_key="events.auth",
+        routing_key="events.payment",
         ) as publisher:
             publisher.publish({
-                "service_name": "auth",
+                "service_name": "payment",
                 "event_type": "Listen",
                 "message": f"EVENT: Confirm payment --> {response}"
             })
@@ -86,14 +86,14 @@ async def request(message: MessageType) -> None:
 def public_key(message: MessageType) -> None:
     logger.info(f"EVENT: Public key updated --> Message: {message}")
     with RabbitMQPublisher(
-        queue="events.auth",
+        queue="events.payment",
         rabbitmq_config=RABBITMQ_CONFIG,
         exchange="events.exchange",
         exchange_type="topic",
-        routing_key="events.auth",
+        routing_key="events.payment",
     ) as publisher:
             publisher.publish({
-                "service_name": "auth",
+                "service_name": "payment",
                 "event_type": "Listen",
                 "message": f"EVENT: Public key updated --> Message: {message}"
             })
