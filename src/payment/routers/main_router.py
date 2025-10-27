@@ -22,13 +22,13 @@ Router = APIRouter(
 )
 
 @Router.get(
-    "/",
+    "/health",
     summary="Health check endpoint",
     response_model=Message,
 )
 async def health_check():
     """Endpoint to check if everything started correctly."""
-    logger.debug("GET '/payment' endpoint called.")
+    logger.debug("GET '/payment/health' endpoint called.")
     return {
         "detail": "OK"
     }
