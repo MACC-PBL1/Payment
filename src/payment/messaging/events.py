@@ -74,7 +74,7 @@ async def request(message: MessageType) -> None:
         ) as publisher:
             publisher.publish({
                 "service_name": "payment",
-                "event_type": "Listen",
+                "event_type": "Publish",
                 "message": f"EVENT: Confirm payment --> {response}"
             })
 
