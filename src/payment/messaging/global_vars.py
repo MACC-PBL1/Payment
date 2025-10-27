@@ -26,4 +26,4 @@ LISTENING_QUEUES: Dict[LiteralString, LiteralString] = {
     "request": "payment.request",
     "public_key": "client.public_key.payment",
 }
-PUBLIC_KEY: Optional[str] = None
+PUBLIC_KEY: Dict[str, Optional[str]] = {"key": None}

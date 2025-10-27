@@ -56,5 +56,5 @@ async def request(message: MessageType) -> None:
 def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
     assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
-    PUBLIC_KEY = str(public_key)
+    PUBLIC_KEY["key"] = str(public_key)
     logging.info(f"Public key updated: {PUBLIC_KEY}")
