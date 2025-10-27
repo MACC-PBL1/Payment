@@ -39,7 +39,7 @@ async def request(message: MessageType) -> None:
     }
     
     try:
-        _ = try_create_payment(Depends(get_db), Movement(client_id=client_id, amount=order_id))
+        _ = await try_create_payment(Depends(get_db), Movement(client_id=client_id, amount=order_id))
         response["status"] = "OK"
     except Exception as e:
         response["status"] = f"Error: {e}"
