@@ -24,6 +24,19 @@ logger = logging.getLogger(__name__)
 @register_queue_handler(LISTENING_QUEUES["request"])
 async def request(message: MessageType) -> None:
     logger.info(f"EVENT: Payment requested --> Message: {message}")
+    with RabbitMQPublisher(
+        queue="events.auth",
+        rabbitmq_config=RABBITMQ_CONFIG,
+        exchange="events.exchange",
+        exchange_type="topic",
+        routing_key="events.auth",
+        ) as publisher:
+            publisher.publish({
+                "service_name": "auth",
+                "event_type": "Listen",
+                "message": f"EVENT: Payment requested --> Message: {message}"
+            })
+
 
     assert (client_id := message.get("client_id")) is not None, "'client_id' field should exist."
     assert (order_id := message.get("order_id")) is not None, "'order_id' field should exist."
@@ -50,7 +63,20 @@ async def request(message: MessageType) -> None:
         rabbitmq_config=RABBITMQ_CONFIG,
     ) as publisher:
         publisher.publish(response)
-        logger.info(f"COMMAND: Confirm payment --> {response}")
+        logger.info(f"EVENT: Confirm payment --> {response}")
+
+    with RabbitMQPublisher(
+        queue="events.auth",
+        rabbitmq_config=RABBITMQ_CONFIG,
+        exchange="events.exchange",
+        exchange_type="topic",
+        routing_key="events.auth",
+        ) as publisher:
+            publisher.publish({
+                "service_name": "auth",
+                "event_type": "Listen",
+                "message": f"EVENT: Confirm payment --> {response}"
+            })
 
 @register_queue_handler(
     queue=LISTENING_QUEUES["public_key"],
@@ -59,6 +85,18 @@ async def request(message: MessageType) -> None:
 )
 def public_key(message: MessageType) -> None:
     logger.info(f"EVENT: Public key updated --> Message: {message}")
+    with RabbitMQPublisher(
+        queue="events.auth",
+        rabbitmq_config=RABBITMQ_CONFIG,
+        exchange="events.exchange",
+        exchange_type="topic",
+        routing_key="events.auth",
+    ) as publisher:
+            publisher.publish({
+                "service_name": "auth",
+                "event_type": "Listen",
+                "message": f"EVENT: Public key updated --> Message: {message}"
+            })
 
     global PUBLIC_KEY
     assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
