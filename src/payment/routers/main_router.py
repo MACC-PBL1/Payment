@@ -16,7 +16,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-Router = APIRouter()
+Router = APIRouter(
+    prefix="/payment",
+    tags=["Payment"]
+)
 
 @Router.get(
     "/",
