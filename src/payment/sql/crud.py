@@ -26,7 +26,7 @@ async def try_create_payment(
     movement: Movement,
 ) -> ClientBalance:
     db_client_balance = await db.get(ClientBalance, movement.client_id)
-    assert db_client_balance is not None, "In order to pay, the client must exist."
+    assert db_client_balance is not None, "In order to pay, the client must have a wallet."
     result = db_client_balance.balance - movement.amount
     if result < 0:
         raise RuntimeError("Not enough balance in the account")

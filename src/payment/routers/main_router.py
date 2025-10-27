@@ -65,8 +65,8 @@ async def create_deposit(
     db: AsyncSession = Depends(get_db)
 ):
     logger.debug(
-        "POST '/deposit' endpoint called",
-        "\tParams:\n",
+        "POST '/deposit' endpoint called"
+        "\tParams:\n"
         f"\t\t- 'amount': {amount}"
     )
     assert (client_id := token_data.get("sub")) is not None, f"'sub' field should exist in the JWT."
