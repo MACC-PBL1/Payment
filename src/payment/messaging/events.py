@@ -16,6 +16,7 @@ from chassis.messaging import (
     register_queue_handler,
     RabbitMQPublisher,
 )
+from ..sql.crud import try_create_payment
 from chassis.sql import SessionLocal
 import logging
 
@@ -101,3 +102,18 @@ def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
     assert (public_key := message.get("public_key")) is not None, "'public_key' field should be present."
     PUBLIC_KEY["key"] = str(public_key)
+
+def cmd(message: MessageType) -> None:
+    logger.info(f"EVENT: cmd --> Message: {message}")
+    
+    assert (response_destination := message.get("response_destination")) is not None, "'response_destination' field should be present."
+    assert (client_id := message.get("client_id")) is not None, "'client_id' field should be present."
+    assert (amount := message.get("amount")) is not None, "'amount' field should be present."
+    
+    with RabbitMQPublisher(
+        queue=response_destination,
+        rabbitmq_config=RABBITMQ_CONFIG,
+    ) as publisher:
+        publisher.publish({
+            "status": try_create_payment(client_id, amount),
+        })
