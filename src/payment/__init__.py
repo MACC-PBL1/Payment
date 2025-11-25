@@ -5,6 +5,7 @@ from .messaging import (
     RABBITMQ_CONFIG,
 )
 from .routers import Router
+from chassis.consul import ConsulClient 
 from chassis.messaging import (
     start_rabbitmq_listener
 )
@@ -54,6 +55,14 @@ async def lifespan(__app: FastAPI):
                 logger.error(
                     f"Could not start the RabbitMQ listeners: {e}"
                 )
+            logger.info("Registering service to Consul...")
+            try:
+                service_port = int(os.getenv("PORT", "8000"))
+                consul = ConsulClient(logger=logger)
+                consul.register_service(service_name="machine-service", port=service_port, health_path="/machine/health")
+                
+            except Exception as e:
+                logger.error(f"Failed to register with Consul: {e}")
         except Exception:
             logger.error(
                 "Could not create tables at startup",
