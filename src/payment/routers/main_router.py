@@ -16,6 +16,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from chassis.logging.rabbitmq_logging import log_with_context   
+
+logger = logging.getLogger("payment")   
+
 Router = APIRouter(
     prefix="/payment",
     tags=["Payment"]
@@ -40,18 +44,24 @@ async def health_check():
 async def health_check_auth(
     token_data: dict = Depends(create_jwt_verifier(lambda: PUBLIC_KEY["key"], logger))
 ):
-    logger.debug("GET '/payment/auth' endpoint called.")
+    logger.debug("GET '/payment/auth' called.")
 
     user_id = token_data.get("sub")
     user_email = token_data.get("email")
     user_role = token_data.get("role")
 
-    logger.info(f" Valid JWT: user_id={user_id}, email={user_email}, role={user_role}")
+    logger.info(f"Valid JWT → user_id={user_id}, email={user_email}, role={user_role}")
+
+    log_with_context(
+        logger,
+        logging.INFO,
+        "Authenticated health check",
+        client_id=user_id
+    )
 
     return {
-        "detail": f"Order service is running. Authenticated as {user_email} (id={user_id}, role={user_role})"
+        "detail": f"Payment service is running. Authenticated as {user_email} (id={user_id}, role={user_role})"
     }
-
 
 @Router.post(
     path="/deposit",
@@ -64,21 +74,42 @@ async def create_deposit(
     token_data: dict = Depends(create_jwt_verifier(lambda: PUBLIC_KEY["key"], logger)),
     db: AsyncSession = Depends(get_db)
 ):
-    logger.debug(
-        "POST '/deposit' endpoint called:\n"
-        "\tParams:\n"
-        f"\t\t- 'amount': {amount}"
-    )
-    assert (client_id := token_data.get("sub")) is not None, f"'sub' field should exist in the JWT."
+    logger.debug(f"POST '/deposit' called (amount={amount})")
+
+    assert (client_id := token_data.get("sub")), "'sub' field should exist in the JWT."
     client_id = int(client_id)
+
+ 
+    log_with_context(
+        logger,
+        logging.DEBUG,
+        "Deposit request received",
+        client_id=client_id
+    )
+
     try:
-        db_client_balance = await create_deposit_from_movement(db, Movement(
-            client_id=client_id,
-            amount=amount,
-        ))
+        db_client_balance = await create_deposit_from_movement(
+            db,
+            Movement(client_id=client_id, amount=amount)
+        )
+
+        # Log successful deposit
+        log_with_context(
+            logger,
+            logging.INFO,
+            f"Deposit completed (amount={amount})",
+            client_id=client_id
+        )
+
         return ClientBalance(
             client_id=db_client_balance.client_id,
             balance=db_client_balance.balance,
         )
+
     except Exception as e:
-        raise_and_log_error(logger, status.HTTP_409_CONFLICT, f"Error in making a deposit: {e}")
+        # This function already logs and raises HTTPException
+        raise_and_log_error(
+            logger,
+            status.HTTP_409_CONFLICT,
+            f"Error in making a deposit: {e}"
+        )
