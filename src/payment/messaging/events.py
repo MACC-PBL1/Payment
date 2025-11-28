@@ -13,8 +13,9 @@ from chassis.messaging import (
 from ..sql.crud import try_create_payment
 from chassis.sql import SessionLocal
 from chassis.logging.rabbitmq_logging import log_with_context
+from chassis.consul import ConsulClient
 import logging
-
+import requests
 logger = logging.getLogger("payment")   # ✔ servicio = payment
 
 
@@ -103,39 +104,42 @@ async def request(message: MessageType) -> None:
         })
 
 
-# =====================================================================================
-# PUBLIC KEY UPDATE
-# =====================================================================================
-@register_queue_handler(
-    queue=LISTENING_QUEUES["public_key"],
-    exchange="public_key",
-    exchange_type="fanout"
-)
 def public_key(message: MessageType) -> None:
+    logger.info(f"EVENT: Public key updated: {message}")
+    global PUBLIC_KEY
 
-    logger.info(f"EVENT: Public key updated --> Message: {message}")
-
-    with RabbitMQPublisher(
-        queue="events.payment",
-        rabbitmq_config=RABBITMQ_CONFIG,
-        exchange="events.exchange",
-        exchange_type="topic",
-        routing_key="events.payment",
-    ) as publisher:
-        publisher.publish({
-            "service_name": "payment",
-            "event_type": "Listen",
-            "message": f"EVENT: Public key updated --> Message: {message}"
-        })
-
-    assert (public_key := message.get("public_key"))
-    PUBLIC_KEY["key"] = str(public_key)
-
-    log_with_context(
-        logger,
-        logging.INFO,
-        "Public key updated"
+    assert "public_key" in message, "'public_key' field should be present."
+    assert message["public_key"] == "AVAILABLE", (
+        f"'public_key' value is '{message['public_key']}', expected 'AVAILABLE'"
     )
+
+    consul = ConsulClient(logger)
+    auth_base_url = consul.get_service_url("auth-service")
+    if not auth_base_url:
+        logger.error("The auth service couldn't be found")
+        return
+
+    target_url = f"{auth_base_url}/auth-service/key"
+
+    try:
+        response = requests.get(target_url, timeout=5)
+
+        if response.status_code == 200:
+            data = response.json()
+            new_key = data.get("public_key")
+
+            assert new_key is not None, (
+                "Auth response did not contain expected 'public_key' field."
+            )
+
+            PUBLIC_KEY["key"] = str(new_key)
+            logger.info("Public key updated")
+
+        else:
+            logger.warning(f"Auth answered with an error: {response.status_code}")
+
+    except Exception as e:
+        logger.error(f"Problem in the auth request: {e}")
 
 
 # =====================================================================================
