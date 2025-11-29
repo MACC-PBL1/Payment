@@ -14,7 +14,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-logger = logging.getLogger(__name__)
 
 from chassis.logging.rabbitmq_logging import log_with_context   
 
@@ -52,12 +51,8 @@ async def health_check_auth(
 
     logger.info(f"Valid JWT → user_id={user_id}, email={user_email}, role={user_role}")
 
-    log_with_context(
-        logger,
-        logging.INFO,
-        "Authenticated health check",
-        client_id=user_id
-    )
+    logger.info("Authenticated health check", extra={"client_id": user_id})
+
 
     return {
         "detail": f"Payment service is running. Authenticated as {user_email} (id={user_id}, role={user_role})"
@@ -80,12 +75,11 @@ async def create_deposit(
     client_id = int(client_id)
 
  
-    log_with_context(
-        logger,
-        logging.DEBUG,
+    logger.debug(
         "Deposit request received",
-        client_id=client_id
+        extra={"client_id": client_id}
     )
+
 
     try:
         db_client_balance = await create_deposit_from_movement(
@@ -93,13 +87,11 @@ async def create_deposit(
             Movement(client_id=client_id, amount=amount)
         )
 
-        # Log successful deposit
-        log_with_context(
-            logger,
-            logging.INFO,
+        logger.info(
             f"Deposit completed (amount={amount})",
-            client_id=client_id
+        extra={"client_id": client_id}
         )
+
 
         return ClientBalance(
             client_id=db_client_balance.client_id,

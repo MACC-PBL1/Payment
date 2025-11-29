@@ -16,7 +16,7 @@ from chassis.logging.rabbitmq_logging import log_with_context
 from chassis.consul import ConsulClient
 import logging
 import requests
-logger = logging.getLogger("payment")   # ✔ servicio = payment
+logger = logging.getLogger("payment")  
 
 
 # =====================================================================================
@@ -25,7 +25,11 @@ logger = logging.getLogger("payment")   # ✔ servicio = payment
 @register_queue_handler(LISTENING_QUEUES["request"])
 async def request(message: MessageType) -> None:
 
-    logger.info(f"EVENT: Payment requested --> Message: {message}")
+    logger.info(
+        f"EVENT: Payment requested --> Message: {message}",
+        extra={"client_id": client_id, "order_id": order_id}
+    )
+
 
     # Monitoring event
     with RabbitMQPublisher(
@@ -50,14 +54,11 @@ async def request(message: MessageType) -> None:
     order_id = int(order_id)
     amount = float(amount)
 
-    # Log audit data
-    log_with_context(
-        logger,
-        logging.INFO,
+    logger.info(
         "Payment request received",
-        client_id=client_id,
-        order_id=order_id
+        extra={"client_id": client_id, "order_id": order_id}
     )
+
 
     response = {
         "client_id": client_id,
@@ -72,7 +73,11 @@ async def request(message: MessageType) -> None:
 
     except Exception as e:
         response["status"] = f"Error: {e}"
-        logger.warning(f"Payment error: {e}")
+        logger.warning(
+            f"Payment error: {e}",
+            extra={"client_id": client_id, "order_id": order_id}
+        )
+
 
     # Send confirmation
     with RabbitMQPublisher(
@@ -81,13 +86,11 @@ async def request(message: MessageType) -> None:
     ) as publisher:
         publisher.publish(response)
 
-    log_with_context(
-        logger,
-        logging.INFO,
+    logger.info(
         f"EVENT: Confirm payment --> {response}",
-        client_id=client_id,
-        order_id=order_id
+        extra={"client_id": client_id, "order_id": order_id}
     )
+
 
     # Monitoring event
     with RabbitMQPublisher(
@@ -120,6 +123,8 @@ def public_key(message: MessageType) -> None:
         return
 
     target_url = f"{auth_base_url}/auth/key"
+    # auth_base_url = "http://auth:8000"
+    # target_url = f"{auth_base_url}/auth/key"
 
     try:
         response = requests.get(target_url, timeout=5)
@@ -156,13 +161,11 @@ def cmd(message: MessageType) -> None:
     client_id = int(client_id)
     amount = float(amount)
 
-    # Audit log
-    log_with_context(
-        logger,
-        logging.INFO,
+    logger.info(
         "CMD executed",
-        client_id=client_id
+        extra={"client_id": client_id}
     )
+
 
     with RabbitMQPublisher(
         queue=response_destination,
