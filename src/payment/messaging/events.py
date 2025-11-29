@@ -126,25 +126,22 @@ def public_key(message: MessageType) -> None:
     # auth_base_url = "http://auth:8000"
     # target_url = f"{auth_base_url}/auth/key"
 
-    try:
-        response = requests.get(target_url, timeout=5)
+    response = requests.get(target_url, timeout=5)
 
-        if response.status_code == 200:
-            data = response.json()
-            new_key = data.get("public_key")
+    if response.status_code == 200:
+        data = response.json()
+        new_key = data.get("public_key")
 
-            assert new_key is not None, (
-                "Auth response did not contain expected 'public_key' field."
-            )
+        assert new_key is not None, (
+            "Auth response did not contain expected 'public_key' field."
+        )
 
-            PUBLIC_KEY["key"] = str(new_key)
-            logger.info("Public key updated")
+        PUBLIC_KEY["key"] = str(new_key)
+        logger.info("Public key updated")
 
-        else:
-            logger.warning(f"Auth answered with an error: {response.status_code}")
+    else:
+        logger.warning(f"Auth answered with an error: {response.status_code}")
 
-    except Exception as e:
-        logger.error(f"Problem in the auth request: {e}")
 
 
 # =====================================================================================
