@@ -1,173 +1,103 @@
-from ..sql import Movement
+from ..sql import (
+    create_deposit_from_movement,
+    Movement,
+)
 from .global_vars import (
     LISTENING_QUEUES,
     PUBLIC_KEY,
-    PUBLISHING_QUEUES,
     RABBITMQ_CONFIG,
 )
+from ..sql.crud import try_create_payment
+from chassis.consul import ConsulClient
 from chassis.messaging import (
     MessageType,
-    register_queue_handler,
     RabbitMQPublisher,
+    register_queue_handler,
 )
-from ..sql.crud import try_create_payment
 from chassis.sql import SessionLocal
-from chassis.logging.rabbitmq_logging import log_with_context
-from chassis.consul import ConsulClient
 import logging
 import requests
-logger = logging.getLogger("payment")  
 
+logger = logging.getLogger(__name__)
 
-# =====================================================================================
-# PAYMENT REQUEST
-# =====================================================================================
-@register_queue_handler(LISTENING_QUEUES["request"])
-async def request(message: MessageType) -> None:
-
-    logger.info(
-        f"EVENT: Payment requested --> Message: {message}",
-        extra={"client_id": client_id, "order_id": order_id}
-    )
-
-
-    # Monitoring event
-    with RabbitMQPublisher(
-        queue="events.payment",
-        rabbitmq_config=RABBITMQ_CONFIG,
-        exchange="events.exchange",
-        exchange_type="topic",
-        routing_key="events.payment",
-    ) as publisher:
-        publisher.publish({
-            "service_name": "payment",
-            "event_type": "Listen",
-            "message": f"EVENT: Payment requested --> Message: {message}"
-        })
-
-    # Required fields
-    assert (client_id := message.get("client_id")) is not None
-    assert (order_id := message.get("order_id")) is not None
-    assert (amount := message.get("amount")) is not None
+@register_queue_handler(
+    queue=LISTENING_QUEUES["sagas_reserve"],
+    exchange="cmd",
+    exchange_type="topic",
+    routing_key="payment.reserve"
+)
+async def reserve_payment(message: MessageType) -> None:
+    assert (client_id := message.get("client_id")) is not None, "'client_id' should exist"
+    assert (total_amount := message.get("total_amount")) is not None, "'total_amount' should exist"
+    assert (response_exchange := message.get("response_exchange")) is not None, "'response_exchange' should exist"
+    assert (response_exchange_type := message.get("response_exchange_type")) is not None, "'response_exchange_type' should exist"
+    assert (response_routing_key := message.get("response_routing_key")) is not None, "'response_routing_key' should exist"
 
     client_id = int(client_id)
-    order_id = int(order_id)
-    amount = float(amount)
-
-    logger.info(
-        "Payment request received",
-        extra={"client_id": client_id, "order_id": order_id}
-    )
-
-
-    response = {
-        "client_id": client_id,
-        "order_id": order_id,
-    }
+    total_amount = float(total_amount)
+    response_exchange = str(response_exchange)
+    response_exchange_type = str(response_exchange_type)
+    response_routing_key = str(response_routing_key)
+    response = {"client_id": str(client_id)}
 
     try:
         async with SessionLocal() as db:
-            # ❗ BUG FIX: before you used amount=order_id (incorrect)
-            await try_create_payment(db, Movement(client_id=client_id, amount=amount))
+            await try_create_payment(db, Movement(client_id=client_id, amount=total_amount))
         response["status"] = "OK"
-
     except Exception as e:
         response["status"] = f"Error: {e}"
-        logger.warning(
-            f"Payment error: {e}",
-            extra={"client_id": client_id, "order_id": order_id}
-        )
 
-
-    # Send confirmation
     with RabbitMQPublisher(
-        queue=PUBLISHING_QUEUES["confirmation"],
+        queue="",
         rabbitmq_config=RABBITMQ_CONFIG,
+        exchange=response_exchange,
+        exchange_type=response_exchange_type,
+        routing_key=response_routing_key
     ) as publisher:
         publisher.publish(response)
 
-    logger.info(
-        f"EVENT: Confirm payment --> {response}",
-        extra={"client_id": client_id, "order_id": order_id}
-    )
 
+@register_queue_handler(
+    queue=LISTENING_QUEUES["sagas_release"],
+    exchange="cmd",
+    exchange_type="topic",
+    routing_key="payment.release"
+)
+async def release_payment(message: MessageType) -> None:
+    assert (client_id := message.get("client_id")) is not None, "'client_id' should exist."
+    assert (total_amount := message.get("total_amount")) is not None, "'total_amount' should exist."
 
-    # Monitoring event
-    with RabbitMQPublisher(
-        queue="events.payment",
-        rabbitmq_config=RABBITMQ_CONFIG,
-        exchange="events.exchange",
-        exchange_type="topic",
-        routing_key="events.payment",
-    ) as publisher:
-        publisher.publish({
-            "service_name": "payment",
-            "event_type": "Publish",
-            "message": f"EVENT: Confirm payment --> {response}"
-        })
+    client_id = int(client_id)
+    total_amount = float(total_amount)
 
+    async with SessionLocal() as db:
+        _ = await create_deposit_from_movement(
+            db,
+            Movement(client_id=client_id, amount=total_amount)
+        )
 
+@register_queue_handler(
+    queue=LISTENING_QUEUES["public_key"],
+    exchange="public_key",
+    exchange_type="fanout"
+)
 def public_key(message: MessageType) -> None:
-    logger.info(f"EVENT: Public key updated: {message}")
     global PUBLIC_KEY
-
+    assert (auth_base_url := ConsulClient(logger).get_service_url("auth")), (
+        "The 'auth' service should be accesible"
+    )
     assert "public_key" in message, "'public_key' field should be present."
     assert message["public_key"] == "AVAILABLE", (
         f"'public_key' value is '{message['public_key']}', expected 'AVAILABLE'"
     )
-
-    consul = ConsulClient(logger)
-    auth_base_url = consul.get_service_url("auth")
-    if not auth_base_url:
-        logger.error("The auth service couldn't be found")
-        return
-
-    target_url = f"{auth_base_url}/auth/key"
-    # auth_base_url = "http://auth:8000"
-    # target_url = f"{auth_base_url}/auth/key"
-
-    response = requests.get(target_url, timeout=5)
-
-    if response.status_code == 200:
-        data = response.json()
-        new_key = data.get("public_key")
-
-        assert new_key is not None, (
-            "Auth response did not contain expected 'public_key' field."
-        )
-
-        PUBLIC_KEY["key"] = str(new_key)
-        logger.info("Public key updated")
-
-    else:
-        logger.warning(f"Auth answered with an error: {response.status_code}")
-
-
-
-# =====================================================================================
-# CMD HANDLER
-# =====================================================================================
-def cmd(message: MessageType) -> None:
-
-    logger.info(f"EVENT: cmd --> Message: {message}")
-
-    assert (response_destination := message.get("response_destination")) is not None
-    assert (client_id := message.get("client_id")) is not None
-    assert (amount := message.get("amount")) is not None
-
-    client_id = int(client_id)
-    amount = float(amount)
-
-    logger.info(
-        "CMD executed",
-        extra={"client_id": client_id}
+    response = requests.get(f"{auth_base_url}/auth/key", timeout=5)
+    assert response.status_code == 200, (
+        f"Public key request returned '{response.status_code}', should return '200'"
     )
-
-
-    with RabbitMQPublisher(
-        queue=response_destination,
-        rabbitmq_config=RABBITMQ_CONFIG,
-    ) as publisher:
-        publisher.publish({
-            "status": try_create_payment(client_id, amount),
-        })
+    data: dict = response.json()
+    new_key = data.get("public_key")
+    assert new_key is not None, (
+        "Auth response did not contain expected 'public_key' field."
+    )
+    PUBLIC_KEY["key"] = str(new_key)
+    logger.info(f"EVENT: Public key updated: {message}")

@@ -29,6 +29,6 @@ async def try_create_payment(
     assert db_client_balance is not None, "In order to pay, the client must have a wallet."
     result = db_client_balance.balance - movement.amount
     if result < 0:
-        raise RuntimeError("Not enough balance in the account")
+        raise ValueError("Not enough balance in the account")
     db_client_balance.balance = result
     return db_client_balance

@@ -15,8 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 
-from chassis.logging.rabbitmq_logging import log_with_context   
-
 logger = logging.getLogger("payment")   
 
 Router = APIRouter(
@@ -73,7 +71,6 @@ async def create_deposit(
 
     assert (client_id := token_data.get("sub")), "'sub' field should exist in the JWT."
     client_id = int(client_id)
-
  
     logger.debug(
         "Deposit request received",
@@ -91,8 +88,6 @@ async def create_deposit(
             f"Deposit completed (amount={amount})",
         extra={"client_id": client_id}
         )
-
-
         return ClientBalance(
             client_id=db_client_balance.client_id,
             balance=db_client_balance.balance,

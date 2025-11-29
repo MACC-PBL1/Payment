@@ -19,10 +19,9 @@ RABBITMQ_CONFIG: RabbitMQConfig = {
     "client_key": Path(client_key_path) if (client_key_path := os.getenv("RABBITMQ_CLIENT_KEY_PATH", None)) is not None else None,
     "prefetch_count": int(os.getenv("RABBITMQ_PREFETCH_COUNT", 10))
 }
-PUBLISHING_QUEUES: Dict[LiteralString, LiteralString] = {
-    "confirmation": "payment.confirmation"
-}
 LISTENING_QUEUES: Dict[LiteralString, LiteralString] = {
+    "sagas_reserve": "payment.reserve",
+    "sagas_release": "payment.release", 
     "request": "payment.request",
     "public_key": "client.public_key.payment",
 }
