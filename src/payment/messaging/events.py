@@ -115,7 +115,7 @@ async def release_payment(message: MessageType) -> None:
 )
 def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
-    assert (auth_base_url := ConsulClient(logger).get_service_url("auth")), (
+    assert (auth_base_url := ConsulClient(logger).get_service_url("auth")) is not None, (
         "The 'auth' service should be accesible"
     )
     assert "public_key" in message, "'public_key' field should be present."
