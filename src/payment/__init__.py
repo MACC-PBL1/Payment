@@ -4,7 +4,6 @@ from .global_vars import (
     LISTENING_QUEUES,
     RABBITMQ_CONFIG,
 )
-from .routers import Router
 from chassis.consul import ConsulClient 
 from chassis.logging import (
     setup_rabbitmq_logging
@@ -31,6 +30,8 @@ logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini")
 logger = logging.getLogger(__name__)
 
 setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
+
+from .routers import Router
 
 # RabbitMQ Configuration ###########################################################################
 LISTENER_THREADS: List[Thread] = []
