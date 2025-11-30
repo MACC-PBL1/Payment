@@ -38,14 +38,31 @@ async def reserve_payment(message: MessageType) -> None:
     response_exchange = str(response_exchange)
     response_exchange_type = str(response_exchange_type)
     response_routing_key = str(response_routing_key)
-    response = {"client_id": str(client_id)}
+    response = {}
+
+    logger.info(
+        "[CMD:PAYMENT_RESERVE:RECEIVED] - Received reserve command: "
+        f"client_id={client_id}, "
+        f"amount={total_amount} "
+    )
 
     try:
         async with SessionLocal() as db:
             await try_create_payment(db, Movement(client_id=client_id, amount=total_amount))
         response["status"] = "OK"
+        logger.info(
+            "[EVENT:PAYMENT_RESERVE:SUCCESS] - Payment reserved: "
+            f"client_id={client_id}, "
+            f"amount={total_amount} "
+        )
     except Exception as e:
         response["status"] = f"Error: {e}"
+        logger.info(
+            "[EVENT:PAYMENT_RESERVE:FAILED] - Payment reserve failed: "
+            f"client_id={client_id}, "
+            f"amount={total_amount}, "
+            f"status='{e}'"
+        )
 
     with RabbitMQPublisher(
         queue="",
@@ -65,16 +82,31 @@ async def reserve_payment(message: MessageType) -> None:
 )
 async def release_payment(message: MessageType) -> None:
     assert (client_id := message.get("client_id")) is not None, "'client_id' should exist."
+    assert (order_id := message.get("order_id")) is not None, "'order_id' should exist."
     assert (total_amount := message.get("total_amount")) is not None, "'total_amount' should exist."
 
     client_id = int(client_id)
+    order_id = int(order_id)
     total_amount = float(total_amount)
+
+    logger.info(
+        "[CMD:PAYMENT_RELEASE:RECEIVED] - Received release command: "
+        f"order_id={order_id}, "
+        f"client_id={client_id}, "
+        f"amount={total_amount}"
+    )
 
     async with SessionLocal() as db:
         _ = await create_deposit_from_movement(
             db,
             Movement(client_id=client_id, amount=total_amount)
         )
+    logger.info(
+        "[EVENT:PAYMENT_RELEASE:SUCCESS] - Payment released: "
+        f"order_id={order_id}, "
+        f"client_id={client_id}, "
+        f"amount={total_amount}"
+    )
 
 @register_queue_handler(
     queue=LISTENING_QUEUES["public_key"],
@@ -100,4 +132,7 @@ def public_key(message: MessageType) -> None:
         "Auth response did not contain expected 'public_key' field."
     )
     PUBLIC_KEY["key"] = str(new_key)
-    logger.info(f"EVENT: Public key updated: {message}")
+    logger.info(
+        "[EVENT:PUBLIC_KEY:UPDATED] - Public key updated: "
+        f"key={PUBLIC_KEY["key"]}"
+    )

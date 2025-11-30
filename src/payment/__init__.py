@@ -27,7 +27,7 @@ import os
 from chassis.logging.rabbitmq_logging import setup_rabbitmq_logging
 
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
-logger = logging.getLogger("payment")
+logger = logging.getLogger(__name__)
 setup_rabbitmq_logging("payment", RABBITMQ_CONFIG, level=logging.INFO)
 
 

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 
-logger = logging.getLogger("payment")   
+logger = logging.getLogger(__name__)   
 
 Router = APIRouter(
     prefix="/payment",
