@@ -9,8 +9,8 @@ class ClientBalance(BaseModel):
     balance: float = Field(examples=[10.1])
 
 class Message(BaseModel):
-    """Message schema definition."""
-    detail: Optional[str] = Field(examples=None)
+    detail: str
+    system_metrics: dict
 
 class Movement(BaseModel):
     """Money movement petition"""
