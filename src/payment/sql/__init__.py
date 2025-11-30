@@ -1,6 +1,7 @@
 from .crud import (
     create_deposit_from_movement,
     try_create_payment,
+    get_client_balance,
 )
 from .schemas import (
     ClientBalance,
@@ -17,5 +18,6 @@ __all__: List[LiteralString] = [
     "create_deposit_from_movement",
     "Message",
     "Movement",
-    "try_create_payment"
+    "try_create_payment",
+    "get_client_balance",
 ]

@@ -7,6 +7,7 @@ from ..global_vars import (
 from ..sql import (
     ClientBalance,
     create_deposit_from_movement,
+    get_client_balance,
     Movement,
     Message,
 )
@@ -78,6 +79,44 @@ async def health_check_auth(
     }
 
 
+# ------------------------------------------------------------------------------------
+# Balance Endpoint
+# ------------------------------------------------------------------------------------
+@Router.get(
+    "/balance",
+    response_model=ClientBalance,
+    summary="Get current client balance",
+)
+async def get_balance(
+    token_data: dict = Depends(create_jwt_verifier(lambda: PUBLIC_KEY["key"], logger)),
+    db: AsyncSession = Depends(get_db)
+):
+    assert (client_id := token_data.get("sub")), "'sub' field should exist in the JWT."
+    client_id = int(client_id)
+    
+    logger.debug(f"[LOG:REST] - GET '/balance' called for client_id={client_id}")
+
+    try:
+        db_balance = await get_client_balance(db, client_id)
+        
+        current_balance = db_balance.balance if db_balance else 0.0
+
+        return ClientBalance(
+            client_id=client_id,
+            balance=current_balance
+        )
+        
+    except Exception as e:
+        raise_and_log_error(
+            logger,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            f"[LOG:REST] - Error retrieving balance for client {client_id}: {e}"
+        )
+
+
+# ------------------------------------------------------------------------------------
+# Deposit Endpoint
+# ------------------------------------------------------------------------------------
 @Router.post(
     path="/deposit",
     response_model=ClientBalance,

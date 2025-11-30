@@ -4,6 +4,7 @@ from .models import ClientBalance
 from .schemas import Movement
 from chassis.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 logger = get_logger(__name__)
 
@@ -32,3 +33,8 @@ async def try_create_payment(
         raise ValueError("Not enough balance in the account")
     db_client_balance.balance = result
     return db_client_balance
+
+async def get_client_balance(db: AsyncSession, client_id: int) -> ClientBalance | None:
+    query = select(ClientBalance).where(ClientBalance.client_id == client_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
