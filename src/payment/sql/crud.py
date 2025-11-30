@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Functions that interact with the database."""
-import logging
-from sqlalchemy.ext.asyncio import AsyncSession
 from .models import ClientBalance
 from .schemas import Movement
+from chassis.logging import get_logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
