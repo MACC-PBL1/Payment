@@ -10,6 +10,7 @@ from ..sql import (
     Movement,
     Message,
 )
+from chassis.logging import get_logger
 from chassis.messaging import is_rabbitmq_healthy
 from chassis.routers import (
     get_system_metrics,
@@ -23,11 +24,10 @@ from fastapi import (
     status
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
 import socket
 
 
-logger = logging.getLogger(__name__)   
+logger = get_logger(__name__)   
 
 Router = APIRouter(
     prefix="/payment",

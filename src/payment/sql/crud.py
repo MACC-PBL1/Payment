@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .models import ClientBalance
 from .schemas import Movement
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 async def create_deposit_from_movement(
     db: AsyncSession,

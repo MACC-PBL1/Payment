@@ -9,16 +9,16 @@ from .global_vars import (
 )
 from ..sql.crud import try_create_payment
 from chassis.consul import ConsulClient
+from chassis.logging import get_logger
 from chassis.messaging import (
     MessageType,
     RabbitMQPublisher,
     register_queue_handler,
 )
 from chassis.sql import SessionLocal
-import logging
 import requests
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @register_queue_handler(
     queue=LISTENING_QUEUES["sagas_reserve"],
