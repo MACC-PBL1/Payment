@@ -2,7 +2,7 @@ from ..sql import (
     create_deposit_from_movement,
     Movement,
 )
-from .global_vars import (
+from ..global_vars import (
     LISTENING_QUEUES,
     PUBLIC_KEY,
     RABBITMQ_CONFIG,
