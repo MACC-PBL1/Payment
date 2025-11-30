@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
-"""Main file to start FastAPI application."""
 from .messaging import (
     LISTENING_QUEUES,
     RABBITMQ_CONFIG,
 )
-from .routers import Router
-from chassis.consul import ConsulClient 
 from chassis.logging import (
     get_logger,
     setup_rabbitmq_logging,
 )
+import logging.config
+import os
+
+# Configure logging ################################################################################
+logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
+setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
+logger = get_logger(__name__)
+
+
+"""Main file to start FastAPI application."""
+from .routers import Router
+from chassis.consul import ConsulClient 
 from chassis.messaging import (
     start_rabbitmq_listener
 )
@@ -24,13 +33,7 @@ from hypercorn.config import Config
 from threading import Thread
 from typing import List
 import asyncio
-import logging.config
 import os
-
-# Configure logging ################################################################################
-logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
-setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
-logger = get_logger(__name__)
 
 # RabbitMQ Configuration ###########################################################################
 LISTENER_THREADS: List[Thread] = []
