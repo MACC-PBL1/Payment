@@ -32,6 +32,7 @@ setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
 logger = get_logger(__name__)
 
 from .routers import Router
+from .messaging import *
 
 # RabbitMQ Configuration ###########################################################################
 LISTENER_THREADS: List[Thread] = []
