@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .messaging import (
+from .messaging.global_vars import (
     LISTENING_QUEUES,
     RABBITMQ_CONFIG,
 )
@@ -9,6 +9,7 @@ from chassis.logging import (
 )
 import logging.config
 import os
+setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
 
 # Configure logging ################################################################################
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
