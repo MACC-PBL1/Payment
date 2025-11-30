@@ -44,12 +44,12 @@ LISTENER_THREADS: List[Thread] = []
 async def lifespan(__app: FastAPI):
     """Lifespan context manager."""
     try:
-        logger.info("Starting up")
+        logger.info("[LOG:PAYMENT] - Starting up")
         try:
-            logger.info("Creating database tables")
+            logger.info("[LOG:PAYMENT] - Creating database tables")
             async with Engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
-            logger.info("Starting RabbitMQ listeners")
+            logger.info("[LOG:PAYMENT] - Starting RabbitMQ listeners")
             try:
                 for _, queue in LISTENING_QUEUES.items():
                     Thread(
@@ -59,28 +59,29 @@ async def lifespan(__app: FastAPI):
                     ).start()
             except Exception as e:
                 logger.error(
-                    f"Could not start the RabbitMQ listeners: {e}"
+                    f"[LOG:PAYMENT] - Could not start the RabbitMQ listeners: Reason={e}",
+                    exc_info=True,
                 )
-            logger.info("Registering service to Consul...")
+            logger.info("[LOG:PAYMENT] - Registering service to Consul...")
             try:
                 service_port = int(os.getenv("PORT", "8000"))
                 consul = ConsulClient(logger=logger)
                 consul.register_service(service_name="payment-service", port=service_port, health_path="/payment/health")
-                
             except Exception as e:
-                logger.error(f"Failed to register with Consul: {e}")
+                logger.error(f"[LOG:PAYMENT] - Failed to register with Consul: {e}", exc_info=True)
         except Exception:
             logger.error(
-                "Could not create tables at startup",
+                "[LOG:PAYMENT] - Could not create tables at startup",
+                exc_info=True,
             )
         yield
     finally:
-        logger.info("Shutting down database")
+        logger.info("[LOG:PAYMENT] - Shutting down database")
         await Engine.dispose()
 
 # OpenAPI Documentation ############################################################################
 APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
-logger.info("Running app version %s", APP_VERSION)
+logger.info("[LOG:PAYMENT] - Running app version %s", APP_VERSION)
 DESCRIPTION = """
 Payment processing application.
 """
@@ -113,6 +114,6 @@ def start_server():
     config.bind = [os.getenv("HOST", "0.0.0.0") + ":" + os.getenv("PORT", "8000")]
     config.workers = int(os.getenv("WORKERS", "1"))
 
-    logger.info("Starting Hypercorn server on %s", config.bind)
+    logger.info("[LOG:PAYMENT] - Starting Hypercorn server on %s", config.bind)
 
     asyncio.run(serve(APP, config)) # type: ignore
