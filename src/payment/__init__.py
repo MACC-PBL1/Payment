@@ -6,6 +6,7 @@ from .global_vars import (
 )
 from chassis.consul import ConsulClient 
 from chassis.logging import (
+    get_logger,
     setup_rabbitmq_logging
 )
 from chassis.messaging import (
@@ -27,9 +28,8 @@ import os
 
 # Configure logging ################################################################################
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
-logger = logging.getLogger(__name__)
-
 setup_rabbitmq_logging(RABBITMQ_CONFIG, capture_dependencies=True)
+logger = get_logger(__name__)
 
 from .routers import Router
 
