@@ -49,6 +49,7 @@ async def reserve_payment(message: MessageType) -> None:
     try:
         async with SessionLocal() as db:
             await try_create_payment(db, Movement(client_id=client_id, amount=total_amount))
+            await db.commit() 
         response["status"] = "OK"
         logger.info(
             "[EVENT:PAYMENT_RESERVE:SUCCESS] - Payment reserved: "
@@ -101,6 +102,7 @@ async def release_payment(message: MessageType) -> None:
             db,
             Movement(client_id=client_id, amount=total_amount)
         )
+    await db.commit() 
     logger.info(
         "[EVENT:PAYMENT_RELEASE:SUCCESS] - Payment released: "
         f"order_id={order_id}, "
