@@ -97,18 +97,48 @@ async def release_payment(message: MessageType) -> None:
         f"amount={total_amount}"
     )
 
-    async with SessionLocal() as db:
-        _ = await create_deposit_from_movement(
-            db,
-            Movement(client_id=client_id, amount=total_amount)
+    try:
+        async with SessionLocal() as db:
+            await create_deposit_from_movement(
+                db,
+                Movement(client_id=client_id, amount=total_amount)
+            )
+            await db.commit()
+
+        logger.info(
+            "[EVENT:PAYMENT_RELEASE:SUCCESS] - order_id=%s",
+            order_id,
         )
-    await db.commit() 
-    logger.info(
-        "[EVENT:PAYMENT_RELEASE:SUCCESS] - Payment released: "
-        f"order_id={order_id}, "
-        f"client_id={client_id}, "
-        f"amount={total_amount}"
-    )
+
+        with RabbitMQPublisher(
+            queue="",
+            exchange="evt",
+            exchange_type="topic",
+            routing_key="payment.released",
+            rabbitmq_config=RABBITMQ_CONFIG,
+        ) as publisher:
+            publisher.publish({
+                "type": "payment.released",
+                "order_id": order_id,
+                "client_id": client_id,
+                "amount": total_amount,
+            })
+
+    except Exception as e:
+        logger.exception("[PAYMENT_RELEASE:FAILED]")
+
+        with RabbitMQPublisher(
+            queue="",
+            exchange="evt",
+            exchange_type="topic",
+            routing_key="payment.failed",
+            rabbitmq_config=RABBITMQ_CONFIG,
+        ) as publisher:
+            publisher.publish({
+                "type": "payment.failed",
+                "order_id": order_id,
+                "reason": str(e),
+            })
 
 @register_queue_handler(
     queue=LISTENING_QUEUES["public_key"],
