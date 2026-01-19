@@ -71,11 +71,8 @@ async def lifespan(__app: FastAPI):
                 consul.register_service(service_name="payment-service", port=service_port, health_path="/payment/health")
             except Exception as e:
                 logger.error(f"[LOG:PAYMENT] - Failed to register with Consul: {e}", exc_info=True)
-        except Exception:
-            logger.error(
-                "[LOG:PAYMENT] - Could not create tables at startup",
-                exc_info=True,
-            )
+        except Exception as e:
+            logger.error(f"[LOG:PAYMENT] - Could not create tables at startup: Reason={e}", exc_info=True)
         yield
     finally:
         logger.info("[LOG:PAYMENT] - Shutting down database")
