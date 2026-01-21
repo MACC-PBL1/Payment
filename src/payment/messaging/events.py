@@ -102,7 +102,34 @@ async def release_payment(message: MessageType) -> None:
             Movement(client_id=client_id, amount=total_amount)
         )
     logger.info(
-        "[EVENT:PAYMENT_RELEASE:SUCCESS] - Payment released: "
+        "[CMD:PAYMENT_RELEASE:SUCCESS] - Payment released: "
+        f"order_id={order_id}, "
+        f"client_id={client_id}, "
+        f"amount={total_amount}"
+    )
+
+@register_queue_handler(
+    queue=LISTENING_QUEUES["saga_cancellation_ok"],
+    exchange="cancellation-approved",
+    exchange_type="fanout",
+)
+async def cancellation_approved(message: MessageType):
+    assert (order_id := message.get("order_id")) is not None, "'order_id' should exist"
+    assert (client_id := message.get("client_id")) is not None, "'client_id' should exist"
+    assert (total_amount := message.get("total_amount")) is not None, "'total_amount' should exist"
+
+    order_id = int(order_id)
+    client_id = int(client_id)
+    total_amount = float(total_amount)
+
+    async with SessionLocal() as db:
+        _ = await create_deposit_from_movement(
+            db,
+            Movement(client_id=client_id, amount=total_amount)
+        )
+
+    logger.info(
+        "[EVENT:PAYMENT_RELEASE:RECEIVED] - Received release command: "
         f"order_id={order_id}, "
         f"client_id={client_id}, "
         f"amount={total_amount}"
