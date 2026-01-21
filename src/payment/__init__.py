@@ -25,6 +25,7 @@ from typing import List
 import asyncio
 import logging.config
 import os
+import socket
 
 # Configure logging ################################################################################
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.ini"))
@@ -67,9 +68,9 @@ async def lifespan(__app: FastAPI):
             logger.info("[LOG:PAYMENT] - Registering service to Consul...")
             try:
                 CONSUL_CLIENT.register_service(
-                    service_name="delivery",
-                    ec2_address=os.getenv("HOST_IP", "localhost"),
-                    service_port=int(os.getenv("HOST_PORT", 80)),
+                    service_name="payment",
+                    ec2_address=os.getenv("HOST_IP", socket.gethostbyname(socket.gethostname())),
+                    service_port=int(os.getenv("HOST_PORT", 8000)),
                 )
             except Exception as e:
                 logger.error(f"[LOG:PAYMENT] - Failed to register with Consul: {e}", exc_info=True)
