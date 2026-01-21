@@ -8,7 +8,7 @@ from ..global_vars import (
     RABBITMQ_CONFIG,
 )
 from ..sql.crud import try_create_payment
-from chassis.consul import ConsulClient
+from chassis.consul import CONSUL_CLIENT
 from chassis.logging import get_logger
 from chassis.messaging import (
     MessageType,
@@ -142,14 +142,15 @@ async def cancellation_approved(message: MessageType):
 )
 def public_key(message: MessageType) -> None:
     global PUBLIC_KEY
-    assert (auth_base_url := ConsulClient(logger).get_service_url("auth")) is not None, (
+    assert (auth_base_url := CONSUL_CLIENT.discover_service("auth")) is not None, (
         "The 'auth' service should be accesible"
     )
     assert "public_key" in message, "'public_key' field should be present."
     assert message["public_key"] == "AVAILABLE", (
         f"'public_key' value is '{message['public_key']}', expected 'AVAILABLE'"
     )
-    response = requests.get(f"{auth_base_url}/auth/key", timeout=5)
+    address, port = auth_base_url
+    response = requests.get(f"{address}:{port}/auth/key", timeout=5)
     assert response.status_code == 200, (
         f"Public key request returned '{response.status_code}', should return '200'"
     )

@@ -4,7 +4,7 @@ from .global_vars import (
     LISTENING_QUEUES,
     RABBITMQ_CONFIG,
 )
-from chassis.consul import ConsulClient 
+from chassis.consul import CONSUL_CLIENT 
 from chassis.logging import (
     get_logger,
     setup_rabbitmq_logging
@@ -66,9 +66,11 @@ async def lifespan(__app: FastAPI):
                 )
             logger.info("[LOG:PAYMENT] - Registering service to Consul...")
             try:
-                service_port = int(os.getenv("PORT", "8000"))
-                consul = ConsulClient(logger=logger)
-                consul.register_service(service_name="payment-service", port=service_port, health_path="/payment/health")
+                CONSUL_CLIENT.register_service(
+                    service_name="delivery",
+                    ec2_address=os.getenv("HOST_IP", "localhost"),
+                    service_port=int(os.getenv("HOST_PORT", 80)),
+                )
             except Exception as e:
                 logger.error(f"[LOG:PAYMENT] - Failed to register with Consul: {e}", exc_info=True)
         except Exception as e:
