@@ -79,6 +79,7 @@ async def lifespan(__app: FastAPI):
     finally:
         logger.info("[LOG:PAYMENT] - Shutting down database")
         await Engine.dispose()
+        CONSUL_CLIENT.deregister_service()
 
 # OpenAPI Documentation ############################################################################
 APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
